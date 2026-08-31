@@ -122,7 +122,7 @@ Si no se dispone de GitHub CLI, se debe proporcionar instrucciones claras para q
 El script debe verificar si gh está instalado; si no, debe ofrecer la opción de crear el repositorio localmente y mostrar los pasos para el remoto.
 
 
-preguntar el nombre del proyecto en git "" y el usuario de git , y donde estan las credenciales para crealo con la ai 
+preguntar el nombre del proyecto en git "" y el usuario de git , y donde estan las credenciales para crealo con la ai
 
 SCRIPTS Y MAKEFILE
 ------------------
@@ -153,7 +153,6 @@ DOCUMENTACIÓN (archivos .md)
 CONTENIDO ADICIONAL
 -------------------
 - Los archivos de cabecera y fuente de la pantalla OLED (SSD1306) deben estar implementados, aunque sea con funciones básicas o declaraciones, pero que compilen sin errores.
-- HMC5883L.hpp debe declarar una clase para el magnetómetro (puede ser un esqueleto con métodos vacíos).
 - El archivo VERSION debe contener un número de versión (ej. 0.1.0).
 
 COMENTARIOS Y DOCUMENTACIÓN DEL CÓDIGO
