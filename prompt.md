@@ -45,7 +45,6 @@ ESTRUCTURA OBLIGATORIA (crear todos los directorios y archivos)
 │   ├── core/                         # cabeceras del núcleo (vacío)
 │   ├── drivers/                      # cabeceras de drivers (vacío)
 │   ├── engine/                       # cabeceras del motor (vacío)
-│   ├── HMC5883L.hpp                  # cabecera del magnetómetro
 │   ├── libraries/                    # cabeceras externas (vacío)
 │   ├── nlohmann/
 │   │   └── json.hpp                  # librería JSON (puede ser vacía o la oficial)
@@ -121,6 +120,9 @@ Con estos datos, el sistema debe ejecutar los siguientes comandos desde la shell
 Si no se dispone de GitHub CLI, se debe proporcionar instrucciones claras para que el usuario cree el repositorio manualmente y luego ejecute los comandos git remote add y git push. El asistente debe generar un script (por ejemplo, setup_git.sh) que automatice todo el proceso y que pueda ejecutarse después de la generación de archivos.
 
 El script debe verificar si gh está instalado; si no, debe ofrecer la opción de crear el repositorio localmente y mostrar los pasos para el remoto.
+
+
+preguntar el nombre del proyecto en git "" y el usuario de git , y donde estan las credenciales para crealo con la ai 
 
 SCRIPTS Y MAKEFILE
 ------------------
