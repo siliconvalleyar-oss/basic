@@ -80,7 +80,7 @@
 class SSD1306 : public SSD1306_graphics  {
   public:
 	SSD1306(int16_t oledwidth, int16_t oledheight);
-	~SSD1306(){};
+	~SSD1306();
 
 	uint8_t* buffer = nullptr;
 
