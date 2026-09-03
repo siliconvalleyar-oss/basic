@@ -8,7 +8,8 @@
 #                          (aarch64 → ARM32 arm-linux-gnueabihf)
 #   make crossover32    -> compilación cruzada ARM 32-bit (arm-linux-gnueabihf)
 #   make crossover64    -> compilación cruzada ARM 64-bit (aarch64-linux-gnu)
-#   make run            -> ejecuta el binario local (bin/App, muestra versión)
+#   make run            -> ejecuta el binario con sudo (requiere acceso al HW)
+#                          (usa la app con --version: make run ARGS="--version")
 #   make clean          -> elimina objetos y binario
 #   make distclean      -> elimina objetos, binario y sysroot cruzado
 #   make ARCH=cross CROSS_TRIPLE=aarch64-linux-gnu  -> cruce explícito
@@ -93,7 +94,7 @@ else
 endif
 
 # --- Objetivos por defecto ---------------------------------------------------
-.PHONY: all clean distclean fetch sysroot cross crossover crossover32 crossover64 run info
+.PHONY: all clean distclean fetch sysroot cross crossover crossover32 crossover64 run runnosudo info
 
 all: $(BINARY)
 
@@ -152,8 +153,16 @@ deploy:
 remote:
 	./scripts/build_remote.sh
 
-# Ejecuta el binario local. Soporta argumentos (p.ej. make run ARGS="--version").
+# Ejecuta el binario local. La app necesita permisos de root para acceder al
+# hardware (bcm2835 abre /dev/mem), por lo que se ejecuta con sudo.
+# Soporta argumentos: make run ARGS="--version".
+# Para ejecutar SIN sudo (solo --version, que no toca el HW): make runnosudo.
+SUDO ?= sudo
 run: $(BINARY)
+	$(SUDO) $(BINARY) $(ARGS)
+
+# Ejecuta sin sudo (útil solo para --version, que no accede al hardware).
+runnosudo: $(BINARY)
 	$(BINARY) $(ARGS)
 
 # Muestra información de configuración.
