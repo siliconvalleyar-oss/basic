@@ -56,8 +56,16 @@ echo ">>> Compilación remota en $REMOTE_TARGET"
 echo ">>> Ruta: $REMOTE_DIR (rama: $REMOTE_BRANCH)"
 
 # --- Comando que se ejecutará dentro de la Raspberry Pi -------------------------
+# Cambia a la rama de despliegue y asegura el upstream hacia origin para que
+# "git pull" funcione tanto la primera vez como en ejecuciones posteriores.
 REMOTE_CMD="cd $REMOTE_DIR \
-  && git checkout $REMOTE_BRANCH 2>/dev/null || git checkout -b $REMOTE_BRANCH \
+  && git fetch origin \
+  && if git rev-parse --verify -q $REMOTE_BRANCH >/dev/null; then \
+       git checkout $REMOTE_BRANCH; \
+     else \
+       git checkout -b $REMOTE_BRANCH origin/$REMOTE_BRANCH; \
+     fi \
+  && (git branch --set-upstream-to=origin/$REMOTE_BRANCH $REMOTE_BRANCH 2>/dev/null || true) \
   && git pull \
   && make clean \
   && make -j4"
