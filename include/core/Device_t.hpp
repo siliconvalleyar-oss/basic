@@ -93,6 +93,9 @@ private:
 
     /** @brief Instancia de la pantalla OLED (memoria gestionada automáticamente). */
     std::unique_ptr<SSD1306> oled_;
+
+    /** @brief Indica si bcm2835 se inicializó correctamente (para apagado seguro). */
+    bool hwReady_ = false;
 };
 
 } // namespace Device

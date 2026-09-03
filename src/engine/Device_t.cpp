@@ -4,7 +4,13 @@
  *
  * @details Esta implementación inicializa la pantalla OLED SSD1306 vía I2C
  * (librería bcm2835) y dibuja una demostración básica: título, rectángulos,
- * un círculo y texto. También gestiona la memoria de forma segura con unique_ptr.
+ * un círculo y texto. La memoria se gestiona de forma segura con unique_ptr.
+ *
+ * Nota importante: la librería bcm2835 exige llamar a bcm2835_init() antes de
+ * acceder a cualquier periférico (GPIO/I2C). En caso contrario los punteros de
+ * registro quedan sin inicializar (0xffffffff) y cualquier acceso produce un
+ * Segmentation fault. Por eso run() llama a bcm2835_init() antes de usar el
+ * display.
  *
  * @author Proyecto BASIC (Raspberry Pi)
  * @version 1.0.0
@@ -12,6 +18,7 @@
 
 #include "Device_t.hpp"
 
+#include <bcm2835.h>
 #include <cstdio>
 
 // Versión por defecto en caso de que el Makefile no la defina.
@@ -27,9 +34,16 @@ Device_t::Device_t()
 }
 
 Device_t::~Device_t() {
-    // Apaga el display antes de liberar la memoria.
-    if (oled_) {
-        oled_->OLEDPowerDown();
+    // Solo apaga/libera si el hardware se inicializó correctamente. Esto evita
+    // llamar a bcm2835_* sin bcm2835_init() (p.ej. al usar --version), lo que
+    // produciría un Segmentation fault.
+    if (hwReady_) {
+        if (oled_) {
+            oled_->OLEDPowerDown();
+            oled_.reset();
+        }
+        // Libera los recursos de bcm2835 (mapeos de memoria).
+        bcm2835_close();
     }
 }
 
@@ -84,7 +98,7 @@ void Device_t::drawBasicDemo() {
 }
 
 int Device_t::run(bool showVersion) {
-    // Si solo se pide la versión, la muestra y termina.
+    // Si solo se pide la versión, la muestra y termina (sin tocar el hardware).
     if (showVersion) {
         printVersion();
         return 0;
@@ -92,6 +106,15 @@ int Device_t::run(bool showVersion) {
 
     // Muestra la versión al iniciar la aplicación.
     printVersion();
+
+    // Inicializa la librería bcm2835 (mapea los registros del hardware).
+    // Es OBLIGATORIO llamarlo antes de usar I2C/GPIO. Sin esto se produce un
+    // Segmentation fault al acceder a los punteros de registro (0xffffffff).
+    if (!bcm2835_init()) {
+        std::printf("Error: No se pudo inicializar bcm2835 (¿ejecutar como root?)\n");
+        return 1;
+    }
+    hwReady_ = true;
 
     // Ejecuta la demostración básica de la pantalla OLED.
     drawBasicDemo();
