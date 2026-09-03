@@ -75,14 +75,16 @@ INC_LOCAL="$INC_DIR/bcm2835.h"
 LIB_LOCAL="$LIB_DIR/libbcm2835.a"
 
 # --- Mapear triple → ruta de la librería en la Raspberry Pi --------------------
-# Solo se busca la librería que corresponda exactamente con el triple pedido,
-# evitando mezclar una lib 32-bit con otra 64-bit.
+# Se prueban varias rutas según cómo esté instalada bcm2835 en la Pi:
+#   - /usr/local/lib  (instalación manual, p.ej. rpi2w con bcm2835 en /usr/local)
+#   - /usr/lib/<triple>  (instalación por paquete libbcm2835-dev)
+# Solo se busca una librería que corresponda con el triple pedido (32 vs 64 bit).
 case "$TRIPLE" in
     aarch64-linux-gnu)
-        REMOTE_LIB_PATH="/usr/lib/aarch64-linux-gnu/libbcm2835.a"
+        REMOTE_LIB_CANDIDATES="/usr/local/lib/libbcm2835.a /usr/lib/aarch64-linux-gnu/libbcm2835.a"
         ;;
     arm-linux-gnueabihf|arm-linux-gnueabi)
-        REMOTE_LIB_PATH="/usr/lib/$TRIPLE/libbcm2835.a"
+        REMOTE_LIB_CANDIDATES="/usr/local/lib/libbcm2835.a /usr/lib/$TRIPLE/libbcm2835.a"
         ;;
     *)
         echo "ERROR: Triple no soportado: '$TRIPLE'"
@@ -92,10 +94,13 @@ case "$TRIPLE" in
 esac
 
 echo ">>> Localizando bcm2835 ($TRIPLE) en $REMOTE_TARGET ..."
-if ! sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
-        "$REMOTE_TARGET" "test -f '$REMOTE_LIB_PATH'"; then
-    echo "ERROR: No se encontró la librería 32/64-bit según el triple '$TRIPLE'."
-    echo "  Ruta esperada en la Raspberry Pi: $REMOTE_LIB_PATH"
+# Encuentra la primera ruta que exista en la Raspberry Pi.
+REMOTE_LIB_PATH=$(sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 \
+    "$REMOTE_TARGET" "for f in $REMOTE_LIB_CANDIDATES; do [ -f \"\$f\" ] && { echo \"\$f\"; break; }; done")
+
+if [[ -z "$REMOTE_LIB_PATH" ]]; then
+    echo "ERROR: No se encontró la librería para el triple '$TRIPLE' en '$REMOTE_TARGET'."
+    echo "  Rutas probadas: $REMOTE_LIB_CANDIDATES"
     echo "  Si usas crossover32 necesitas una Raspberry Pi de 32 bits"
     echo "  (o instala: sudo apt install libbcm2835-dev) y luego:"
     echo "      ./scripts/fetch_sysroot.sh $TRIPLE"

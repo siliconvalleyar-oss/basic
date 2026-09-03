@@ -8,6 +8,7 @@
 #                          (aarch64 → ARM32 arm-linux-gnueabihf)
 #   make crossover32    -> compilación cruzada ARM 32-bit (arm-linux-gnueabihf)
 #   make crossover64    -> compilación cruzada ARM 64-bit (aarch64-linux-gnu)
+#   make run            -> ejecuta el binario local (bin/App, muestra versión)
 #   make clean          -> elimina objetos y binario
 #   make distclean      -> elimina objetos, binario y sysroot cruzado
 #   make ARCH=cross CROSS_TRIPLE=aarch64-linux-gnu  -> cruce explícito
@@ -92,7 +93,7 @@ else
 endif
 
 # --- Objetivos por defecto ---------------------------------------------------
-.PHONY: all clean distclean fetch sysroot cross crossover crossover32 crossover64 info
+.PHONY: all clean distclean fetch sysroot cross crossover crossover32 crossover64 run info
 
 all: $(BINARY)
 
@@ -150,6 +151,10 @@ deploy:
 # Compila de forma remota en la Raspberry Pi (git pull + make clean + make).
 remote:
 	./scripts/build_remote.sh
+
+# Ejecuta el binario local. Soporta argumentos (p.ej. make run ARGS="--version").
+run: $(BINARY)
+	$(BINARY) $(ARGS)
 
 # Muestra información de configuración.
 info:
