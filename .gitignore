@@ -91,4 +91,7 @@ README.bak
 *.o.arm
 *.o.x86
 
+# Sysroot descargado de la Raspberry Pi (artefacto generado por fetch_sysroot.sh)
+sysroot/
+
 tmp/
