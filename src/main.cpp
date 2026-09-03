@@ -30,17 +30,24 @@
  * @return Código de retorno del proceso (0 = éxito).
  */
 int main(int argc, char* argv[]) {
-    // Soporte del argumento --version: muestra la versión y termina.
+    // Soporte de argumentos:
+    //   --version / -v : solo muestra la versión y termina.
+    //   --fill         : enciende toda la pantalla (validación visual blanca).
     bool showVersion = false;
+    bool fillMode = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--version") == 0 || std::strcmp(argv[i], "-v") == 0) {
             showVersion = true;
-            break;
+        } else if (std::strcmp(argv[i], "--fill") == 0) {
+            fillMode = true;
         }
     }
 
     // Crea el dispositivo (incluye la pantalla OLED) con memoria gestionada.
     // run() se encarga de: OLEDbegin() -> dibujar -> cerrar (acceso I2C vía /dev/i2c).
     auto device = std::make_unique<Device::Device_t>();
+    if (fillMode) {
+        return device->fillWhite();
+    }
     return device->run(showVersion);
 }

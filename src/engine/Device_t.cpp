@@ -19,6 +19,8 @@
 #include "Device_t.hpp"
 
 #include <cstdio>
+#include <cstring>
+#include <unistd.h>
 
 // Versión por defecto en caso de que el Makefile no la defina.
 #ifndef VERSION
@@ -99,9 +101,12 @@ int Device_t::run(bool showVersion) {
         return 0;
     }
 
-    // Muestra la versión al iniciar la aplicación.
+    // Muestra la versión al iniciar la aplicación y ejecuta la demo.
     printVersion();
+    return runDemo();
+}
 
+int Device_t::runDemo() {
     // Ejecuta la demostración básica de la pantalla OLED. El acceso I2C se
     // realiza por /dev/i2c-N (ioctl) y requiere permisos de root en /dev/i2c-*.
     drawBasicDemo();
@@ -109,6 +114,26 @@ int Device_t::run(bool showVersion) {
 
     std::printf("Pantalla OLED inicializada correctamente.\n");
 
+    return 0;
+}
+
+int Device_t::fillWhite() {
+    // Muestra la versión al iniciar.
+    printVersion();
+
+    // Inicializa el display (configuración y encendido).
+    oled_->OLEDbegin();
+
+    // Enciende todos los píxeles: patrón inconfundible de pantalla completa
+    // (blanco) para validar visualmente que el display muestra contenido.
+    std::memset(oled_->buffer, 0xFF, OLED_WIDTH * (OLED_HEIGHT / 8));
+    oled_->OLEDupdate();
+    hwReady_ = true;
+
+    std::printf("Pantalla llenada en blanco (validación visual).\n");
+
+    // Mantiene la imagen visible unos segundos antes de salir.
+    usleep(5000 * 1000);
     return 0;
 }
 

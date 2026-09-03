@@ -74,6 +74,21 @@ public:
     int run(bool showVersion = false);
 
     /**
+     * @brief Ejecuta la demostración principal del display.
+     * @return Código de salida (0 = éxito).
+     */
+    int runDemo();
+
+    /**
+     * @brief Enciende todos los píxeles de la pantalla (vacía en blanco).
+     * @details Útil para validar visualmente que el display muestra contenido
+     * (patrón inconfundible de pantalla completa). Mantiene la imagen visible
+     * unos segundos antes de salir.
+     * @return Código de salida (0 = éxito).
+     */
+    int fillWhite();
+
+    /**
      * @brief Devuelve la versión de la aplicación compilada.
      * @return Cadena con el número de versión.
      */
