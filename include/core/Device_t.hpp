@@ -3,11 +3,11 @@
  * @brief Clase principal del dispositivo que controla la pantalla OLED SSD1306.
  *
  * @details Define la clase Device::Device_t que encapsula la inicialización y el
- * uso básico de la pantalla OLED mediante la librería bcm2835. Permite mostrar
+ * uso básico de la pantalla OLED (acceso I2C por /dev/i2c-N). Permite mostrar
  * información por consola y en el display, así como manejar el argumento --version.
  *
  * @author Proyecto BASIC (Raspberry Pi)
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 #ifndef DEVICE_T_HPP
@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <string>
 
-// Incluye la cabecera de la pantalla OLED (SSD1306) que a su vez usa bcm2835.
+// Incluye la cabecera de la pantalla OLED (SSD1306), que usa la capa I2C Linux.
 #include "SSD1306_OLED.hpp"
 
 // Anula la macro swap definida por la librería OLED para no romper std::swap.
@@ -94,7 +94,7 @@ private:
     /** @brief Instancia de la pantalla OLED (memoria gestionada automáticamente). */
     std::unique_ptr<SSD1306> oled_;
 
-    /** @brief Indica si bcm2835 se inicializó correctamente (para apagado seguro). */
+    /** @brief Indica si el display se inicializó (para apagado seguro en destructor). */
     bool hwReady_ = false;
 };
 

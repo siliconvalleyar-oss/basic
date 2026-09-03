@@ -4,18 +4,18 @@
  *
  * @details Punto de entrada que integra el funcionamiento de la pantalla OLED
  * SSD1306. Crea una instancia de Device::Device_t mediante un unique_ptr y
- * ejecuta su método run(), que inicializa la librería bcm2835 (obligatoria para
- * acceder a I2C/GPIO) y dibuja la demostración básica en el display.
+ * ejecuta su método run(), que inicializa el display (acceso I2C por /dev/i2c-N)
+ * y dibuja la demostración básica en la pantalla.
  *
  * Si se pasa el argumento --version, solo se muestra la versión sin tocar el
  * hardware. La memoria se libera automáticamente al salir del main.
  *
- * Ejecución recomendada (necesita permisos de root para acceder al hardware):
+ * Ejecución recomendada (necesita permisos de root para acceder a /dev/i2c-*):
  *     sudo ./bin/App
  *     sudo ./bin/App --version
  *
  * @author Proyecto BASIC (Raspberry Pi)
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 #include <memory>
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Crea el dispositivo (incluye la pantalla OLED) con memoria gestionada.
-    // run() se encarga de: bcm2835_init() -> OLEDbegin() -> dibujar -> cerrar.
+    // run() se encarga de: OLEDbegin() -> dibujar -> cerrar (acceso I2C vía /dev/i2c).
     auto device = std::make_unique<Device::Device_t>();
     return device->run(showVersion);
 }

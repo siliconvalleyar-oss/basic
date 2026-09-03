@@ -3,22 +3,21 @@
  * @brief Implementación de la clase Device::Device_t para la pantalla OLED.
  *
  * @details Esta implementación inicializa la pantalla OLED SSD1306 vía I2C
- * (librería bcm2835) y dibuja una demostración básica: título, rectángulos,
- * un círculo y texto. La memoria se gestiona de forma segura con unique_ptr.
+ * (acceso por /dev/i2c-N mediante ioctl, compatible con todas las Raspberry Pi
+ * incluidas Pi 5/CM5 con chip RP1) y dibuja una demostración básica: título,
+ * rectángulos, un círculo y texto. La memoria se gestiona de forma segura con
+ * unique_ptr.
  *
- * Nota importante: la librería bcm2835 exige llamar a bcm2835_init() antes de
- * acceder a cualquier periférico (GPIO/I2C). En caso contrario los punteros de
- * registro quedan sin inicializar (0xffffffff) y cualquier acceso produce un
- * Segmentation fault. Por eso run() llama a bcm2835_init() antes de usar el
- * display.
+ * Nota: el acceso I2C ya no depende de la librería bcm2835 (que no soporta
+ * Raspberry Pi 5 / Compute Module 5). El cierre seguro del adaptador I2C lo
+ * realiza el destructor de la clase SSD1306.
  *
  * @author Proyecto BASIC (Raspberry Pi)
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 #include "Device_t.hpp"
 
-#include <bcm2835.h>
 #include <cstdio>
 
 // Versión por defecto en caso de que el Makefile no la defina.
@@ -34,16 +33,12 @@ Device_t::Device_t()
 }
 
 Device_t::~Device_t() {
-    // Solo apaga/libera si el hardware se inicializó correctamente. Esto evita
-    // llamar a bcm2835_* sin bcm2835_init() (p.ej. al usar --version), lo que
-    // produciría un Segmentation fault.
-    if (hwReady_) {
-        if (oled_) {
-            oled_->OLEDPowerDown();
-            oled_.reset();
-        }
-        // Libera los recursos de bcm2835 (mapeos de memoria).
-        bcm2835_close();
+    // Solo apagamos/liberamos el display si se inicializó (evita acceder al I2C
+    // cuando solo se mostró --version). El destructor de SSD1306 cierra el
+    // adaptador I2C si quedó abierto y libera el frame buffer.
+    if (hwReady_ && oled_) {
+        oled_->OLEDPowerDown();
+        oled_.reset();
     }
 }
 
@@ -107,17 +102,10 @@ int Device_t::run(bool showVersion) {
     // Muestra la versión al iniciar la aplicación.
     printVersion();
 
-    // Inicializa la librería bcm2835 (mapea los registros del hardware).
-    // Es OBLIGATORIO llamarlo antes de usar I2C/GPIO. Sin esto se produce un
-    // Segmentation fault al acceder a los punteros de registro (0xffffffff).
-    if (!bcm2835_init()) {
-        std::printf("Error: No se pudo inicializar bcm2835 (¿ejecutar como root?)\n");
-        return 1;
-    }
-    hwReady_ = true;
-
-    // Ejecuta la demostración básica de la pantalla OLED.
+    // Ejecuta la demostración básica de la pantalla OLED. El acceso I2C se
+    // realiza por /dev/i2c-N (ioctl) y requiere permisos de root en /dev/i2c-*.
     drawBasicDemo();
+    hwReady_ = true;
 
     std::printf("Pantalla OLED inicializada correctamente.\n");
 

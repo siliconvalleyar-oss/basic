@@ -7,10 +7,19 @@
 #include "SSD1306_OLED.hpp"
 #include <stdbool.h>
 #include <stdlib.h>   // malloc / free
+#include <unistd.h>   // usleep
+
+// Delay en milisegundos usando usleep de POSIX (reemplaza a bcm2835_delay).
+#define OLED_DELAY_MS(ms) usleep((ms) * 1000)
 
 // Implementación del destructor: libera el frame buffer asignado en el constructor.
 SSD1306::~SSD1306()
 {
+	// Cierra el adaptador I2C si quedó abierto.
+	if (_I2C_fd >= 0) {
+		SSD1306LinuxI2C::i2c_close(_I2C_fd);
+		_I2C_fd = -1;
+	}
 	free(buffer);
 	buffer = nullptr;
 }
@@ -49,24 +58,17 @@ void SSD1306::OLEDbegin( uint16_t I2C_speed , uint8_t I2c_address)
 
 void SSD1306::OLED_I2C_ON()
 {
-	// Start I2C operations. Forces RPi I2C pins P1-03 (SDA) and P1-05 (SCL) 
-	// to alternate function ALT0, which enables those pins for I2C interface. 
-	if (!bcm2835_i2c_begin())
-	{
+	// Abre el adaptador I2C de Linux (/dev/i2c-1) y configura la dirección
+	// del esclavo. Usa ioctl (igual que i2cset/i2cget) y, a diferencia de
+	// bcm2835, funciona en Raspberry Pi 5 / Compute Module 5 (chip RP1).
+	_I2C_fd = SSD1306LinuxI2C::i2c_open(SSD1306LinuxI2C::I2C_DEV_PATH, _I2C_address);
+	if (_I2C_fd < 0) {
 		printf("Error: Cannot start I2C, Running root?\n");
 		return;
 	}
-	bcm2835_i2c_setSlaveAddress(_I2C_address);  //i2c address
-	
-	if ( _I2C_speed > 0)  
-	{
-		// BCM2835_I2C_CLOCK_DIVIDER enum choice  2500 622 150 148
-		// Clock divided is based on nominal base clock rate of 250MHz
-		bcm2835_i2c_setClockDivider(_I2C_speed);
-	} else{
-		// default or use set_baudrate instead of clockdivder 100k
-		bcm2835_i2c_set_baudrate(100000); //100k baudrate
-	}
+	// Nota: la velocidad I2C la controla el driver del kernel
+	// (/boot/config.txt -> dtparam=i2c_arm_baudrate). El parámetro
+	// _I2C_speed (clock divider de bcm2835) ya no aplica aquí.
 }
 
 // Desc: End I2C operations. 
@@ -74,21 +76,24 @@ void SSD1306::OLED_I2C_ON()
 // are returned to their default INPUT behaviour. 
 void SSD1306::OLED_I2C_OFF(void)
 {
-	bcm2835_i2c_end();
+	if (_I2C_fd >= 0) {
+		SSD1306LinuxI2C::i2c_close(_I2C_fd);
+		_I2C_fd = -1;
+	}
 }
 
 // Call when powering down
 void SSD1306::OLEDPowerDown(void)
 {
 	OLEDEnable(0);
-	bcm2835_delay(100);
+	OLED_DELAY_MS(100);
 }
 
 // Desc: Called from OLEDbegin carries out Power on sequence and register init
 void SSD1306::OLEDinit()
  {
 
-	bcm2835_delay(SSD1306_INITDELAY);
+	OLED_DELAY_MS(SSD1306_INITDELAY);
 	
 	SSD1306_command( SSD1306_DISPLAY_OFF);
 	SSD1306_command( SSD1306_SET_DISPLAY_CLOCK_DIV_RATIO);
@@ -136,7 +141,7 @@ switch (_OLED_HEIGHT)
 	SSD1306_command( SSD1306_DEACTIVATE_SCROLL );
 	SSD1306_command( SSD1306_DISPLAY_ON );
 
-	bcm2835_delay(SSD1306_INITDELAY);
+	OLED_DELAY_MS(SSD1306_INITDELAY);
 }
 
 // Desc: Turns On Display
@@ -182,7 +187,7 @@ void SSD1306::OLEDFillScreen(uint8_t dataPattern, uint8_t delay)
 		for (uint8_t col = 0; col < _OLED_WIDTH; col++)
 		{
 			SSD1306_data(dataPattern);
-			bcm2835_delay(delay);
+			OLED_DELAY_MS(delay);
 		}
 	}
 	OLED_I2C_OFF();
@@ -202,7 +207,7 @@ void SSD1306::OLEDFillPage(uint8_t page_num, uint8_t dataPattern,uint8_t mydelay
 	for (uint8_t i = 0; i < numofbytes; i++)
 	{
 		SSD1306_data(dataPattern);
-		bcm2835_delay(mydelay);
+		OLED_DELAY_MS(mydelay);
 	}
 	OLED_I2C_OFF();
 }
@@ -248,22 +253,26 @@ for (int16_t j = 0; j < h; j++, y++)
 
 // Desc Writes a byte to I2C address,command or data, used internally
 // In the event of an error will loop 3 times each time.
-// Printing the error code , see bcm2835I2CReasonCodes in bcm2835 docs.
+// Usa la capa SSD1306_I2C (ioctl sobre /dev/i2c-N) en lugar de bcm2835.
 void SSD1306::I2C_Write_Byte(uint8_t value, uint8_t Cmd)
 {
-	char buf[2] = {Cmd,value};
 	uint8_t attemptI2Cwrite = 0;
-	uint8_t returnCode = 0;
-	
-	returnCode = bcm2835_i2c_write(buf, 2); 
-	
-	while(returnCode != 0)
+	bool ok = false;
+
+	if (_I2C_fd < 0) {
+		printf("Error I2C: No hay adaptador I2C abierto\n");
+		return;
+	}
+
+	ok = SSD1306LinuxI2C::i2c_write_byte(_I2C_fd, value, Cmd);
+
+	while (!ok)
 	{ // failure to write I2C byte 
 		attemptI2Cwrite ++;
 		printf("Error I2C: Cannot Write byte :: %u\n", attemptI2Cwrite);
-		printf("bcm2835I2CReasonCodes :: Error code %u\n", returnCode);
-		returnCode  = bcm2835_i2c_write(buf, 2);
-		bcm2835_delay(100); //mS
+		printf("I2C Error: NACK\n");
+		ok = SSD1306LinuxI2C::i2c_write_byte(_I2C_fd, value, Cmd);
+		OLED_DELAY_MS(100); //mS
 		if (attemptI2Cwrite >= 3) break;
 	}
 }

@@ -68,8 +68,9 @@ CPPFLAGS += -DVERSION="\"$(VERSION)\"" -I$(INC_DIR) -I$(INC_DIR)/core -I$(INC_DI
 # Estándar C++17 y advertencias. sin -Werror para no romper el build.
 CXXFLAGS += -std=c++17 -Wall -Wextra -O2
 
-# Librerías necesarias: bcm2835 (hardware RPi) + matemáticas (usada por gráficos).
-LIBS := -lbcm2835 -lm
+# Librerías necesarias: matemáticas (usada por los gráficos del OLED).
+# Nota: el acceso I2C se realiza por /dev/i2c-N (ioctl), sin depender de bcm2835.
+LIBS := -lm
 
 # --- Detección de arquitectura local para compilación cruzada automática ------
 # uname -m → aarch64 / armv7l / x86_64 / i686 / ...

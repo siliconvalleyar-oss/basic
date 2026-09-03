@@ -8,13 +8,16 @@
 #define _SSD1306_OLED_H_
 
 // ************** Library INCLUDES ********
-#include <bcm2835.h>
+// Nota: ya no se incluye <bcm2835.h> aquí porque el acceso I2C se realiza
+// mediante ioctl sobre /dev/i2c-N (capa SSD1306_I2C), compatible con todas las
+// Raspberry Pi (incluidas Pi 5 / CM5 con chip RP1).
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 
 #include "SSD1306_OLED_graphics.hpp"
+#include "SSD1306_I2C.hpp"
 
 // ********* DEFINES ********
 // ***********  SSD1306 Command Set  ***********
@@ -115,6 +118,7 @@ class SSD1306 : public SSD1306_graphics  {
 	void OLED_I2C_ON(void);
 	uint16_t _I2C_speed = 0 ;
 	uint8_t _I2C_address = SSD1306_ADDR ;
+	int _I2C_fd = -1 ;   // Descriptor del adaptador /dev/i2c-N (Linux)
 	
 	int16_t _OLED_WIDTH;
 	int16_t _OLED_HEIGHT;
