@@ -6,12 +6,12 @@
 
 #include "SSD1306_OLED.hpp"
 #include <stdbool.h>
-#include <new>
+#include <stdlib.h>   // malloc / free
 
 // Implementación del destructor: libera el frame buffer asignado en el constructor.
 SSD1306::~SSD1306()
 {
-	delete[] buffer;
+	free(buffer);
 	buffer = nullptr;
 }
 
@@ -25,7 +25,9 @@ SSD1306  :: SSD1306(int16_t oledwidth, int16_t oledheight) :SSD1306_graphics(ole
 	// Asigna la memoria para el frame buffer de la pantalla.
 	// (buffer se declara como nullptr en el header; sin esta asignación,
 	//  funciones como OLEDclearBuffer() harían memset sobre NULL -> segfault).
-	buffer = new (std::nothrow) uint8_t[(uint16_t)(oledwidth * (oledheight / 8))];
+	// Se usa malloc/free (en vez de new[]/delete[]) para no incluir <new>,
+	// que entra en conflicto con la macro swap del header OLED en GCC 10/11.
+	buffer = (uint8_t*) malloc((size_t)(oledwidth * (oledheight / 8)));
 	if (buffer == nullptr) {
 		printf("Error: No se pudo asignar el buffer OLED\n");
 	}
